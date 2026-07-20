@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Customer Detail{% endblock %}
+{% block content %}
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h2>{{ customer.name }}</h2>
+        <p class="text-muted mb-0">{{ customer.customer_id }}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{% url 'customer_edit' customer.pk %}">Edit</a>
+        <a class="btn btn-outline-danger" href="{% url 'customer_delete' customer.pk %}">Delete</a>
+      </div>
+    </div>
+    <hr>
+    <div class="row g-3">
+      <div class="col-md-4"><strong>Gender:</strong> {{ customer.gender }}</div>
+      <div class="col-md-4"><strong>Age:</strong> {{ customer.age }}</div>
+      <div class="col-md-4"><strong>Contract:</strong> {{ customer.contract }}</div>
+      <div class="col-md-4"><strong>Internet:</strong> {{ customer.internet_service }}</div>
+      <div class="col-md-4"><strong>Tenure:</strong> {{ customer.tenure }}</div>
+      <div class="col-md-4"><strong>Monthly Charges:</strong> {{ customer.monthly_charges }}</div>
+      <div class="col-md-4"><strong>Prediction:</strong> {{ customer.churn_prediction }}</div>
+      <div class="col-md-4"><strong>Probability:</strong> {{ customer.churn_probability }}</div>
+      <div class="col-md-4"><strong>Risk:</strong> {{ customer.risk_level }}</div>
+      <div class="col-12"><strong>Recommendation:</strong> {{ customer.recommendation }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

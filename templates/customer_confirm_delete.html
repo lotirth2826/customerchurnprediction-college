@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Delete Customer{% endblock %}
+{% block content %}
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h3>Delete Customer</h3>
+    <p>Are you sure you want to delete <strong>{{ customer.name }}</strong>?</p>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-danger" type="submit">Delete</button>
+      <a class="btn btn-outline-secondary" href="{% url 'customer_detail' customer.pk %}">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block content %}
+<div class="hero-panel mb-4 fade-in">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="hero-chip mb-3">Customer management</div>
+      <h1 class="hero-title fw-bold mb-3">Search, segment, and manage accounts</h1>
+      <p class="lead mb-0 text-white-75">Filter by contract, gender, or internet service to quickly find accounts that need action.</p>
+    </div>
+    <div class="col-lg-4 mt-4 mt-lg-0 text-lg-end">
+      <a class="btn btn-light pill-filter" href="{% url 'customer_add' %}">Add Customer</a>
+    </div>
+  </div>
+</div>
+
+<form class="card glass-card soft-border mb-4 fade-in delay-1" method="get">
+  <div class="card-body">
+    <div class="section-title">
+      <div>
+        <h4>Search & Filters</h4>
+        <div class="section-subtitle">Use one or more filters to narrow the customer list.</div>
+      </div>
+    </div>
+    <div class="row g-3">
+      <div class="col-lg-4">
+        <input type="text" name="q" value="{{ query }}" class="form-control form-control-lg" placeholder="Search by Customer ID or Name">
+      </div>
+      <div class="col-lg-2">
+        <select name="contract" class="form-select form-select-lg">
+          <option value="">Contract</option>
+          {% for value,label in contracts %}
+            <option value="{{ value }}" {% if contract == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2">
+        <select name="gender" class="form-select form-select-lg">
+          <option value="">Gender</option>
+          {% for value,label in genders %}
+            <option value="{{ value }}" {% if gender == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2">
+        <select name="internet_service" class="form-select form-select-lg">
+          <option value="">Internet</option>
+          {% for value,label in internet_services %}
+            <option value="{{ value }}" {% if internet_service == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2 d-grid">
+        <button class="btn btn-dark btn-lg pill-filter" type="submit">Filter</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card glass-card soft-border fade-in delay-2">
+  <div class="card-body">
+    <div class="section-title">
+      <div>
+        <h4>Customer Table</h4>
+        <div class="section-subtitle">{{ customers|length }} records currently visible.</div>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-success pill-filter" href="{% url 'export_customers_csv' %}">Export CSV</a>
+        <a class="btn btn-sm btn-outline-secondary pill-filter" href="{% url 'high_risk' %}">High Risk List</a>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Contract</th><th>Internet</th><th>Probability</th><th>Risk</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for customer in customers %}
+            <tr>
+              <td>{{ customer.customer_id }}</td>
+              <td>
+                <div class="fw-semibold">{{ customer.name }}</div>
+                <div class="small text-muted">{{ customer.gender }} | {{ customer.age }} years</div>
+              </td>
+              <td>{{ customer.contract }}</td>
+              <td>{{ customer.internet_service }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 8px;">
+                    <div class="progress-bar bg-danger" style="width: {{ customer.churn_probability|floatformat:0 }}%;"></div>
+                  </div>
+                  <span class="small">{{ customer.churn_probability }}</span>
+                </div>
+              </td>
+              <td><span class="badge rounded-pill {% if customer.risk_level == 'High' %}text-bg-danger{% elif customer.risk_level == 'Medium' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ customer.risk_level }}</span></td>
+              <td>
+                <a class="btn btn-sm btn-outline-primary pill-filter" href="{% url 'customer_detail' customer.pk %}">View</a>
+                <a class="btn btn-sm btn-outline-secondary pill-filter" href="{% url 'customer_edit' customer.pk %}">Edit</a>
+                <a class="btn btn-sm btn-outline-danger pill-filter" href="{% url 'customer_delete' customer.pk %}">Delete</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="text-center py-4 text-muted">No customers found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

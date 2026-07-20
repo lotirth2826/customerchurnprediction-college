@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Predict Churn{% endblock %}
+{% block content %}
+<div class="hero-panel mb-4 fade-in">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="hero-chip mb-3">Prediction workstation</div>
+      <h1 class="hero-title fw-bold mb-3">Customer Churn Prediction</h1>
+      <p class="lead mb-0 text-white-75">Enter customer details, get a churn score, and trigger a recommendation path instantly.</p>
+    </div>
+    <div class="col-lg-4 mt-4 mt-lg-0">
+      <div class="surface p-3 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-10">
+        <div class="fw-semibold mb-1">Risk bands</div>
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="badge rounded-pill text-bg-success">Low</span>
+          <span class="badge rounded-pill text-bg-warning">Medium</span>
+          <span class="badge rounded-pill text-bg-danger">High</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="card glass-card soft-border fade-in delay-1">
+      <div class="card-body">
+        <div class="section-title">
+          <div>
+            <h3>Prediction Input</h3>
+            <div class="section-subtitle">Provide the core customer profile fields.</div>
+          </div>
+        </div>
+        <form method="post" class="needs-validation" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            {% for field in form %}
+              <div class="col-md-6">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="small text-muted">{{ field.help_text }}</div>{% endif %}
+                {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-4">
+            <button class="btn btn-primary pill-filter" type="submit">Predict Churn</button>
+            <a class="btn btn-outline-secondary pill-filter" href="{% url 'customer_list' %}">Open Customers</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card glass-card soft-border h-100 fade-in delay-2">
+      <div class="card-body">
+        <div class="section-title">
+          <div>
+            <h3>Prediction Result</h3>
+            <div class="section-subtitle">Result, risk level, and next best action.</div>
+          </div>
+        </div>
+        {% if result %}
+          <div class="prediction-result {% if result.prediction == 'Churn' %}danger{% else %}success{% endif %} mb-3">
+            <div class="fw-semibold text-uppercase small mb-1">Prediction</div>
+            <div class="display-6 fw-bold mb-2">{{ result.prediction }}</div>
+            <div class="small">Probability: {{ result.probability }}</div>
+          </div>
+          <div class="surface rounded-4 p-3 mb-3">
+            <div class="fw-semibold mb-1">Risk Level</div>
+            <div class="d-flex align-items-center justify-content-between">
+              <span class="badge rounded-pill {% if result.risk_level == 'High' %}text-bg-danger{% elif result.risk_level == 'Medium' %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                {{ result.risk_level }}
+              </span>
+              <span class="small text-muted">Model confidence band</span>
+            </div>
+          </div>
+          <div class="surface rounded-4 p-3 mb-3">
+            <div class="fw-semibold mb-1">Recommendation</div>
+            <div class="small">{{ result.recommendation }}</div>
+          </div>
+          <div class="surface rounded-4 p-3">
+            <div class="fw-semibold mb-2">Action buttons</div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-sm btn-outline-primary pill-filter" type="button">Offer Discount</button>
+              <button class="btn btn-sm btn-outline-primary pill-filter" type="button">Upgrade Plan</button>
+              <button class="btn btn-sm btn-outline-primary pill-filter" type="button">Provide Better Support</button>
+              <button class="btn btn-sm btn-outline-primary pill-filter" type="button">Contact Customer</button>
+            </div>
+          </div>
+        {% else %}
+          <div class="surface rounded-4 p-4 text-center">
+            <div class="metric-label mb-2">No prediction yet</div>
+            <p class="text-muted mb-0">Submit the form to see churn probability, risk classification, and a recommendation playbook.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Model Performance{% endblock %}
+{% block content %}
+<div class="hero-panel mb-4 fade-in">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="hero-chip mb-3">Model validation</div>
+      <h1 class="hero-title fw-bold mb-3">Performance Snapshot</h1>
+      <p class="lead mb-0 text-white-75">Track the model’s accuracy, precision, recall, F1, and ROC-AUC in one place.</p>
+    </div>
+    <div class="col-lg-4 mt-4 mt-lg-0">
+      <div class="surface p-3 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-10">
+        <div class="fw-semibold mb-1">Model health</div>
+        <div class="small text-white-75">Stable metrics with room for tuning and retraining.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for name, value in metrics.items %}
+    <div class="col-md-4 col-lg-2">
+      <div class="metric-card fade-in delay-1">
+        <div class="metric-label">{{ name|title }}</div>
+        <div class="metric-value">{{ value }}</div>
+        <div class="metric-delta">Validation metric</div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+<div class="card glass-card soft-border fade-in delay-2">
+  <div class="card-body">
+    <div class="section-title">
+      <div>
+        <h4>Confusion Matrix</h4>
+        <div class="section-subtitle">Predicted vs actual churn outcomes.</div>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered w-auto mb-0">
+        <tr><td>{{ confusion_matrix.0.0 }}</td><td>{{ confusion_matrix.0.1 }}</td></tr>
+        <tr><td>{{ confusion_matrix.1.0 }}</td><td>{{ confusion_matrix.1.1 }}</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

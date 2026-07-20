@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Prediction History{% endblock %}
+{% block content %}
+<div class="hero-panel mb-4 fade-in">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="hero-chip mb-3">Audit trail</div>
+      <h1 class="hero-title fw-bold mb-3">Prediction History</h1>
+      <p class="lead mb-0 text-white-75">Review model outputs, export data, and trace the sequence of churn decisions.</p>
+    </div>
+    <div class="col-lg-4 mt-4 mt-lg-0 text-lg-end">
+      <a class="btn btn-light pill-filter" href="{% url 'export_pdf_report' %}">Download PDF</a>
+      <a class="btn btn-outline-light pill-filter ms-2" href="{% url 'export_history_csv' %}">Export CSV</a>
+    </div>
+  </div>
+</div>
+
+<div class="card glass-card soft-border fade-in delay-1">
+  <div class="card-body">
+    <div class="section-title">
+      <div>
+        <h4>History Table</h4>
+        <div class="section-subtitle">Latest predictions appear first.</div>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr><th>Name</th><th>ID</th><th>Prediction</th><th>Probability</th><th>Risk</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {% for item in history %}
+            <tr>
+              <td class="fw-semibold">{{ item.customer_name }}</td>
+              <td>{{ item.customer_id }}</td>
+              <td><span class="badge rounded-pill {% if item.prediction == 'Churn' %}text-bg-danger{% else %}text-bg-success{% endif %}">{{ item.prediction }}</span></td>
+              <td>{{ item.probability }}</td>
+              <td>{{ item.risk_level }}</td>
+              <td class="text-muted small">{{ item.created_at }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">No prediction history yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
