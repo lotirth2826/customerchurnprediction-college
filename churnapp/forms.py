@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Customer
+from .models import Customer, RetentionAction
 
 
 class BootstrapMixin:
@@ -40,6 +40,17 @@ class PredictionForm(BootstrapMixin, forms.Form):
     internet_service = forms.ChoiceField(choices=Customer.INTERNET_CHOICES)
     tenure = forms.IntegerField(min_value=0, max_value=130)
     monthly_charges = forms.DecimalField(max_digits=10, decimal_places=2, min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_bootstrap()
+
+
+class RetentionActionForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = RetentionAction
+        fields = ["action_type", "status", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Add follow-up details or outcome."})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

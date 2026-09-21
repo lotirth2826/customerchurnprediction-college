@@ -4,6 +4,7 @@ from io import BytesIO
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,9 +13,9 @@ from django.utils import timezone
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-from .forms import CustomerForm, PredictionForm
+from .forms import CustomerForm, PredictionForm, RetentionActionForm
 from .models import Customer, PredictionHistory
-from .services import predict_customer
+from .services import model_performance as get_model_performance, predict_customer
 
 
 def home(request):
@@ -88,15 +89,27 @@ def _save_customer_from_form(form):
     customer.recommendation = result["recommendation"]
     customer.last_predicted_at = timezone.now()
     customer.save()
-    PredictionHistory.objects.create(
+    _create_prediction_history(customer, result)
+    return customer
+
+
+def _create_prediction_history(customer, result):
+    """Store the complete input and output for every prediction."""
+    return PredictionHistory.objects.create(
         customer_name=customer.name,
         customer_id=customer.customer_id,
-        prediction=customer.churn_prediction,
-        probability=customer.churn_probability,
-        risk_level=customer.risk_level,
-        recommendation=customer.recommendation,
+        gender=customer.gender,
+        age=customer.age,
+        contract=customer.contract,
+        internet_service=customer.internet_service,
+        tenure=customer.tenure,
+        monthly_charges=customer.monthly_charges,
+        prediction=result["prediction"],
+        probability=result["probability"],
+        risk_level=result["risk_level"],
+        prediction_factors=", ".join(result["factors"]),
+        recommendation=result["recommendation"],
     )
-    return customer
 
 
 @login_required
@@ -143,7 +156,8 @@ def predict_customer_view(request):
         form = PredictionForm(request.POST)
         if form.is_valid():
             data = {
-                "customer_id": f"TMP-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                # Microseconds make each quick consecutive prediction distinct.
+                "customer_id": f"PRED-{timezone.now().strftime('%Y%m%d%H%M%S%f')}",
                 "name": form.cleaned_data["customer_name"],
                 "gender": form.cleaned_data["gender"],
                 "age": form.cleaned_data["age"],
@@ -153,14 +167,24 @@ def predict_customer_view(request):
                 "monthly_charges": form.cleaned_data["monthly_charges"],
             }
             result = predict_customer(data)
-            PredictionHistory.objects.create(
-                customer_name=data["name"],
-                customer_id=data["customer_id"],
-                prediction=result["prediction"],
-                probability=result["probability"],
-                risk_level=result["risk_level"],
-                recommendation=result["recommendation"],
-            )
+            with transaction.atomic():
+                customer = Customer.objects.create(
+                    customer_id=data["customer_id"],
+                    name=data["name"],
+                    gender=data["gender"],
+                    age=data["age"],
+                    contract=data["contract"],
+                    internet_service=data["internet_service"],
+                    tenure=data["tenure"],
+                    monthly_charges=data["monthly_charges"],
+                    churn_prediction=result["prediction"],
+                    churn_probability=result["probability"],
+                    risk_level=result["risk_level"],
+                    recommendation=result["recommendation"],
+                    last_predicted_at=timezone.now(),
+                )
+                _create_prediction_history(customer, result)
+            messages.success(request, "Prediction saved to customer records and prediction history.")
     else:
         form = PredictionForm()
     return render(request, "predict.html", {"form": form, "result": result})
@@ -177,8 +201,10 @@ def analytics_dashboard(request):
     customers = Customer.objects.all()
     churn_yes = customers.filter(churn_prediction="Churn").count()
     churn_no = customers.filter(churn_prediction="Stay").count()
+    active_risk_segments = customers.exclude(risk_level="").values("risk_level").distinct().count()
 
     context = {
+        "active_risk_segments": active_risk_segments,
         "churn_labels": json.dumps(["Churn", "Stay"]),
         "churn_data": json.dumps([churn_yes, churn_no]),
         "gender_labels": json.dumps(["Male", "Female"]),
@@ -210,21 +236,52 @@ def analytics_dashboard(request):
 
 @login_required
 def prediction_history(request):
+    if request.method == "POST":
+        item = get_object_or_404(PredictionHistory, pk=request.POST.get("delete_id"))
+        customer_id = item.customer_id
+        with transaction.atomic():
+            # A history deletion is treated as deleting that customer from the
+            # application, keeping Customers, History, and Analytics aligned.
+            if customer_id:
+                Customer.objects.filter(customer_id=customer_id).delete()
+                PredictionHistory.objects.filter(customer_id=customer_id).delete()
+            else:
+                item.delete()
+        messages.success(request, "Customer and related prediction history deleted.")
+        return redirect("history")
     history = PredictionHistory.objects.order_by("-created_at")
     return render(request, "history.html", {"history": history})
 
 
 @login_required
+def retention_action_tracker(request):
+    high_risk_history = PredictionHistory.objects.filter(risk_level="High").prefetch_related(
+        "retention_actions"
+    ).order_by("-created_at")
+    return render(request, "retention_tracker.html", {"high_risk_history": high_risk_history})
+
+
+@login_required
+def retention_action_create(request, history_pk):
+    history_item = get_object_or_404(PredictionHistory, pk=history_pk, risk_level="High")
+    if request.method == "POST":
+        form = RetentionActionForm(request.POST)
+        if form.is_valid():
+            action = form.save(commit=False)
+            action.prediction_history = history_item
+            action.save()
+            messages.success(request, "Retention action recorded.")
+            return redirect("retention_tracker")
+    else:
+        form = RetentionActionForm()
+    return render(request, "retention_action_form.html", {"form": form, "history_item": history_item})
+
+
+@login_required
 def model_performance(request):
-    metrics = {
-        "accuracy": 0.89,
-        "precision": 0.86,
-        "recall": 0.84,
-        "f1_score": 0.85,
-        "roc_auc": 0.91,
-    }
-    confusion_matrix = [[82, 12], [15, 91]]
-    return render(request, "performance.html", {"metrics": metrics, "confusion_matrix": confusion_matrix})
+    performance = get_model_performance().copy()
+    confusion_matrix = performance.pop("confusion_matrix")
+    return render(request, "performance.html", {"metrics": performance, "confusion_matrix": confusion_matrix})
 
 
 @login_required
@@ -245,7 +302,9 @@ def export_customers_csv(request):
         "Probability",
         "Risk Level",
     ])
-    for customer in Customer.objects.all().order_by("name"):
+    customers = Customer.objects.all().order_by("name")
+    customer_ids = set(customers.values_list("customer_id", flat=True))
+    for customer in customers:
         writer.writerow([
             customer.customer_id,
             customer.name,
@@ -259,6 +318,23 @@ def export_customers_csv(request):
             customer.churn_probability,
             customer.risk_level,
         ])
+
+    # Older Predict-form submissions were saved only in history.  Include them
+    # too, so downloading the main CSV does not hide any prior predictions.
+    for item in PredictionHistory.objects.exclude(customer_id__in=customer_ids).order_by("customer_name"):
+        writer.writerow([
+            item.customer_id,
+            item.customer_name,
+            item.gender,
+            item.age,
+            item.contract,
+            item.internet_service,
+            item.tenure,
+            item.monthly_charges,
+            item.prediction,
+            item.probability,
+            item.risk_level,
+        ])
     return response
 
 
@@ -267,11 +343,21 @@ def export_history_csv(request):
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="prediction_history.csv"'
     writer = csv.writer(response)
-    writer.writerow(["Customer Name", "Customer ID", "Prediction", "Probability", "Risk Level", "Recommendation", "Date Time"])
+    writer.writerow([
+        "Customer Name", "Gender", "Age", "Contract", "Internet Service",
+        "Tenure", "Monthly Charges", "Prediction Factors", "Prediction",
+        "Probability", "Risk Level", "Recommendation", "Date Time",
+    ])
     for item in PredictionHistory.objects.all().order_by("-created_at"):
         writer.writerow([
             item.customer_name,
-            item.customer_id,
+            item.gender,
+            item.age,
+            item.contract,
+            item.internet_service,
+            item.tenure,
+            item.monthly_charges,
+            item.prediction_factors,
             item.prediction,
             item.probability,
             item.risk_level,

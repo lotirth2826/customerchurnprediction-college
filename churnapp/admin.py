@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Customer, PredictionHistory
+from .models import Customer, PredictionHistory, RetentionAction
 
 
 @admin.register(Customer)
@@ -26,3 +26,9 @@ class CustomerAdmin(admin.ModelAdmin):
 class PredictionHistoryAdmin(admin.ModelAdmin):
     list_display = ("customer_name", "prediction", "probability", "risk_level", "created_at")
     search_fields = ("customer_name", "customer_id")
+
+
+@admin.register(RetentionAction)
+class RetentionActionAdmin(admin.ModelAdmin):
+    list_display = ("prediction_history", "action_type", "status", "created_at")
+    list_filter = ("action_type", "status")

@@ -79,9 +79,14 @@
             <div class="fw-semibold mb-1">Recommendation</div>
             <div class="small">{{ result.recommendation }}</div>
           </div>
+          <div class="surface rounded-4 p-3 mb-3">
+            <div class="fw-semibold mb-1">Prediction Factors</div>
+            <div class="small">{{ result.factors|join:", " }}</div>
+          </div>
           <div class="surface rounded-4 p-3">
             <div class="fw-semibold mb-2">Action buttons</div>
             <div class="d-flex flex-wrap gap-2">
+              <a class="btn btn-sm btn-success pill-filter" href="{% url 'history' %}">View Saved History</a>
               <button class="btn btn-sm btn-outline-primary pill-filter" type="button">Offer Discount</button>
               <button class="btn btn-sm btn-outline-primary pill-filter" type="button">Upgrade Plan</button>
               <button class="btn btn-sm btn-outline-primary pill-filter" type="button">Provide Better Support</button>

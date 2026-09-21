@@ -26,20 +26,36 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0 align-middle">
         <thead>
-          <tr><th>Name</th><th>ID</th><th>Prediction</th><th>Probability</th><th>Risk</th><th>Date</th></tr>
+          <tr>
+            <th>Name</th><th>Gender</th><th>Age</th><th>Contract</th>
+            <th>Internet service</th><th>Tenure</th><th>Monthly charges</th>
+            <th>Prediction</th><th>Probability</th><th>Risk</th><th>Date</th><th>Action</th>
+          </tr>
         </thead>
         <tbody>
           {% for item in history %}
             <tr>
               <td class="fw-semibold">{{ item.customer_name }}</td>
-              <td>{{ item.customer_id }}</td>
+              <td>{{ item.gender|default:"—" }}</td>
+              <td>{{ item.age|default:"—" }}</td>
+              <td>{{ item.contract|default:"—" }}</td>
+              <td>{{ item.internet_service|default:"—" }}</td>
+              <td>{{ item.tenure|default:"—" }}</td>
+              <td>{% if item.monthly_charges is not None %}{{ item.monthly_charges }}{% else %}—{% endif %}</td>
               <td><span class="badge rounded-pill {% if item.prediction == 'Churn' %}text-bg-danger{% else %}text-bg-success{% endif %}">{{ item.prediction }}</span></td>
               <td>{{ item.probability }}</td>
               <td>{{ item.risk_level }}</td>
               <td class="text-muted small">{{ item.created_at }}</td>
+              <td>
+                <form method="post" action="{% url 'history' %}" onsubmit="return confirm('Delete this customer and all related prediction history?');">
+                  {% csrf_token %}
+                  <input type="hidden" name="delete_id" value="{{ item.pk }}">
+                  <button class="btn btn-sm btn-outline-danger pill-filter" type="submit">Delete Customer</button>
+                </form>
+              </td>
             </tr>
           {% empty %}
-            <tr><td colspan="6" class="text-center py-4 text-muted">No prediction history yet.</td></tr>
+            <tr><td colspan="12" class="text-center py-4 text-muted">No prediction history yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
