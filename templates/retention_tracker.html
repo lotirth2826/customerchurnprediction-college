@@ -2,9 +2,9 @@
 {% block title %}Retention Action Tracker{% endblock %}
 {% block content %}
 <div class="hero-panel mb-4 fade-in">
-  <div class="hero-chip mb-3">High-risk follow-up</div>
+  <div class="hero-chip mb-3">Prediction-history follow-up</div>
   <h1 class="hero-title fw-bold mb-3">Retention Action Tracker</h1>
-  <p class="lead mb-0 text-white-75">Record and monitor retention actions for customers identified as high risk in prediction history.</p>
+  <p class="lead mb-0 text-white-75">Record and monitor retention actions for every customer in prediction history. High-risk customers are highlighted for priority follow-up.</p>
 </div>
 
 <div class="card glass-card soft-border fade-in delay-1">
@@ -12,17 +12,22 @@
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead>
-          <tr><th>Customer</th><th>Churn probability</th><th>Recommendation</th><th>Recorded actions</th><th>Action</th></tr>
+          <tr><th>Customer</th><th>Risk level</th><th>Churn probability</th><th>Recommendation</th><th>Recorded actions</th><th>Action</th></tr>
         </thead>
         <tbody>
-          {% for item in high_risk_history %}
+          {% for item in prediction_history %}
             <tr>
               <td><div class="fw-semibold">{{ item.customer_name }}</div><div class="small text-muted">{{ item.customer_id }}</div></td>
+              <td><span class="badge rounded-pill {% if item.risk_level == 'High' %}text-bg-danger{% elif item.risk_level == 'Medium' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ item.risk_level }}</span></td>
               <td>{{ item.probability }}</td>
               <td class="small">{{ item.recommendation }}</td>
               <td>
                 {% for action in item.retention_actions.all %}
-                  <div class="mb-1"><span class="badge text-bg-primary">{{ action.action_type }}</span> <span class="small">{{ action.status }}</span></div>
+                  <div class="mb-1">
+                    <span class="badge text-bg-primary">{{ action.action_type }}</span>
+                    <span class="small">{{ action.status }}</span>
+                    <a class="small ms-1" href="{% url 'retention_action_edit' action.pk %}">Update</a>
+                  </div>
                 {% empty %}
                   <span class="text-muted small">No action recorded</span>
                 {% endfor %}
@@ -30,7 +35,7 @@
               <td><a class="btn btn-sm btn-outline-primary pill-filter" href="{% url 'retention_action_add' item.pk %}">Record action</a></td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="text-center py-4 text-muted">No high-risk customers in prediction history.</td></tr>
+            <tr><td colspan="6" class="text-center py-4 text-muted">No customers in prediction history yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>

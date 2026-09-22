@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Record Retention Action{% endblock %}
+{% block title %}{% if action %}Update Retention Action{% else %}Record Retention Action{% endif %}{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-8">
     <div class="card glass-card soft-border">
       <div class="card-body p-4">
         <div class="hero-chip mb-3">High-risk customer</div>
-        <h2 class="mb-1">Record retention action</h2>
+        <h2 class="mb-1">{% if action %}Update retention action{% else %}Record retention action{% endif %}</h2>
         <p class="text-muted">{{ history_item.customer_name }} · Churn probability: {{ history_item.probability }} · {{ history_item.recommendation }}</p>
         <form method="post">
           {% csrf_token %}
@@ -18,7 +18,7 @@
             </div>
           {% endfor %}
           <div class="d-flex gap-2">
-            <button class="btn btn-primary pill-filter" type="submit">Save action</button>
+            <button class="btn btn-primary pill-filter" type="submit">{% if action %}Update action{% else %}Save action{% endif %}</button>
             <a class="btn btn-outline-secondary pill-filter" href="{% url 'retention_tracker' %}">Cancel</a>
           </div>
         </form>

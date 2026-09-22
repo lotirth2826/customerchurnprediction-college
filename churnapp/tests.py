@@ -62,3 +62,36 @@ class PredictionHistoryTests(TestCase):
         tracker_response = self.client.get(reverse("retention_tracker"))
         self.assertContains(tracker_response, "At Risk Customer")
         self.assertContains(tracker_response, "Contact")
+
+    def test_tracker_displays_all_prediction_history(self):
+        response = self.client.get(reverse("retention_tracker"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Test Customer")
+        self.assertContains(response, "Low")
+
+    def test_retention_action_can_be_updated(self):
+        high_risk_item = PredictionHistory.objects.create(
+            customer_name="At Risk Customer",
+            customer_id="HIGH-RISK-UPDATE-001",
+            prediction="Churn",
+            probability=0.85,
+            risk_level="High",
+        )
+        action = RetentionAction.objects.create(
+            prediction_history=high_risk_item,
+            action_type="Contact",
+            status="Planned",
+            notes="Initial outreach planned.",
+        )
+
+        response = self.client.post(
+            reverse("retention_action_edit", args=[action.pk]),
+            {"action_type": "Discount", "status": "Completed", "notes": "Discount accepted."},
+        )
+
+        self.assertRedirects(response, reverse("retention_tracker"))
+        action.refresh_from_db()
+        self.assertEqual(action.action_type, "Discount")
+        self.assertEqual(action.status, "Completed")
+        self.assertEqual(action.notes, "Discount accepted.")

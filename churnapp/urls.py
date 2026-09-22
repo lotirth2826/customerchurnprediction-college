@@ -16,6 +16,7 @@ urlpatterns = [
     path("history/", views.prediction_history, name="history"),
     path("retention-actions/", views.retention_action_tracker, name="retention_tracker"),
     path("retention-actions/<int:history_pk>/add/", views.retention_action_create, name="retention_action_add"),
+    path("retention-actions/action/<int:pk>/edit/", views.retention_action_update, name="retention_action_edit"),
     path("performance/", views.model_performance, name="performance"),
     path("reports/customers.csv", views.export_customers_csv, name="export_customers_csv"),
     path("reports/history.csv", views.export_history_csv, name="export_history_csv"),

@@ -14,7 +14,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 from .forms import CustomerForm, PredictionForm, RetentionActionForm
-from .models import Customer, PredictionHistory
+from .models import Customer, PredictionHistory, RetentionAction
 from .services import model_performance as get_model_performance, predict_customer
 
 
@@ -255,15 +255,15 @@ def prediction_history(request):
 
 @login_required
 def retention_action_tracker(request):
-    high_risk_history = PredictionHistory.objects.filter(risk_level="High").prefetch_related(
+    prediction_history = PredictionHistory.objects.prefetch_related(
         "retention_actions"
     ).order_by("-created_at")
-    return render(request, "retention_tracker.html", {"high_risk_history": high_risk_history})
+    return render(request, "retention_tracker.html", {"prediction_history": prediction_history})
 
 
 @login_required
 def retention_action_create(request, history_pk):
-    history_item = get_object_or_404(PredictionHistory, pk=history_pk, risk_level="High")
+    history_item = get_object_or_404(PredictionHistory, pk=history_pk)
     if request.method == "POST":
         form = RetentionActionForm(request.POST)
         if form.is_valid():
@@ -275,6 +275,31 @@ def retention_action_create(request, history_pk):
     else:
         form = RetentionActionForm()
     return render(request, "retention_action_form.html", {"form": form, "history_item": history_item})
+
+
+@login_required
+def retention_action_update(request, pk):
+    """Allow staff to keep an existing retention action current."""
+    action = get_object_or_404(
+        RetentionAction.objects.select_related("prediction_history"), pk=pk
+    )
+    if request.method == "POST":
+        form = RetentionActionForm(request.POST, instance=action)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Retention action updated.")
+            return redirect("retention_tracker")
+    else:
+        form = RetentionActionForm(instance=action)
+    return render(
+        request,
+        "retention_action_form.html",
+        {
+            "form": form,
+            "history_item": action.prediction_history,
+            "action": action,
+        },
+    )
 
 
 @login_required
